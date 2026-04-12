@@ -1,0 +1,53 @@
+# Written by Vahid Tavakkoli, 2026
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+
+# Environment and local secrets
+.env
+.env.local
+.env.*.local
+
+# Docker
+*.pid
+*.seed
+*.log
+docker-compose.override.yml
+
+# Build/cache artifacts
+dist/
+build/
+coverage/
+.cache/
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Misc
+*.bak
+*.tmp
