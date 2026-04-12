@@ -1,176 +1,145 @@
-# 🧩 MCP Stack – Multi-Component AI + Tools Demo
+# mcp-test
 
-This repository provides a complete, containerized **MCP (Model Context
-Protocol) stack** to test small local LLMs with MCP tools and a simple
-web UI.
+Containerized MCP demo stack by **Vahid Tavakkoli (2026)**.
 
-It includes:
+This project demonstrates how to orchestrate a local AI workflow with a Node.js backend, a static frontend, Python tool servers, SearxNG web search, and Ollama model inference using Docker Compose.
 
--   🧮 **Two MCP tool servers**
-    -   `mcp-matrix`: Matrix inversion (NumPy)
-    -   `mcp-hanoi`: Tower of Hanoi solver
--   🟩 **Backend API** (Node.js)
--   🟦 **Frontend UI** (Nginx static app)
--   🟪 **SearxNG** meta-search engine
--   🐳 **One-command startup with Docker Compose**
+![MCP stack screenshot](./screenshot.png)
 
+## Project overview
 
-![MCP Stack in test](./screenshot.png)
+`mcp-test` is a practical reference setup for experimenting with tool-enabled LLM chat in a local environment. The backend receives user prompts, calls Ollama, executes requested tools (matrix inversion, Tower of Hanoi, internet search, time, weather), and returns a final response to the browser UI.
 
----
+## Features
 
-## 📦 Repository Structure
+- Node.js backend API (`/api/chat`) with tool-call orchestration.
+- Static frontend (Nginx) for interactive chat.
+- Python MCP-style tool services:
+  - Matrix inversion service
+  - Hanoi solver service
+- SearxNG integration for search results.
+- Ollama integration for local model inference.
+- Docker Compose orchestration for one-command startup.
+
+## Architecture overview
 
 ```text
-mcp-stack/
-├── docker-compose.yml
-├── mcp-hanoi/
-├── mcp-matrix/
-├── backend/
-├── frontend/
-└── searxng/
+Browser UI (frontend:6180)
+  -> Backend API (backend:6100, POST /api/chat)
+     -> Ollama API (host.docker.internal:11434)
+     -> MCP Matrix service (mcp-matrix:6101, POST /tool/matrix)
+     -> MCP Hanoi service (mcp-hanoi:6102, POST /tool/hanoi)
+     -> SearxNG (searxng:8080)
 ```
 
----
+## Repository structure
 
-## 🛠️ Service Overview
+```text
+mcp-test/
+├── backend/                # Node.js API and tool execution logic
+├── frontend/               # Static HTML/JS UI served by Nginx
+├── mcp-hanoi/              # Python FastAPI Hanoi tool server
+├── mcp-matrix/             # Python FastAPI matrix tool server
+├── searxng/config/         # SearxNG runtime config
+├── docker-compose.yml      # Multi-service orchestration
+└── README.md
+```
 
-### 🔷 MCP Matrix Inversion Server (`mcp-matrix`)
-Python + NumPy MCP service providing:
-- `invert_matrix(matrix)` → returns the inverse or an error if the matrix is singular.
+## Prerequisites
 
-Exposed port:
+- Docker + Docker Compose
+- Ollama running on the host machine
+- A pulled Ollama model (default in compose: `ministral-3:3b`)
 
-- **Host:** `6101` → **Container:** `6101`
+### Ollama dependency notes
 
----
+- The backend expects Ollama at `http://host.docker.internal:11434`.
+- On Linux, if `host.docker.internal` is not available by default, configure host-gateway support for Docker.
+- Make sure your selected model is pulled before chat requests.
 
-### 🔶 MCP Hanoi Server (`mcp-hanoi`)
-Recursive Tower-of-Hanoi solver:
-- `solve_hanoi(disks, from, to, aux)` → returns an ordered move list.
+### SearxNG dependency notes
 
-Exposed port:
+- SearxNG is included as a containerized dependency in this stack.
+- Backend searches route through `SEARXNG_URL=http://searxng:8080`.
+- Public internet access from your Docker environment is required for meaningful search results.
 
-- **Host:** `6102` → **Container:** `6102`
+## Setup and run
 
----
+1. Clone:
 
-### 🟩 Backend API (`backend`)
-Node.js service that:
+   ```bash
+   git clone https://github.com/vtavakkoli/mcp-test.git
+   cd mcp-test
+   ```
 
-- Connects to MCP servers
-- Talks to a local Ollama instance
-- Provides REST endpoints for the frontend
+2. (Optional) create local env file:
 
-Environment (from `docker-compose.yml`):
+   ```bash
+   cp .env.example .env
+   ```
 
-- `OLLAMA_BASE_URL=http://host.docker.internal:11434`
-- `OLLAMA_MODEL=qwen3:1.7b`
-- `MCP_MATRIX_URL=http://mcp-matrix:6101`
-- `MCP_HANOI_URL=http://mcp-hanoi:6102`
-- `SEARXNG_URL=http://searxng:8080`
+3. Start services:
 
-Exposed port:
+   ```bash
+   docker compose up --build
+   ```
 
-- **Host:** `6100` → **Container:** `6100`
+4. Open the frontend:
 
----
+   - `http://localhost:6180`
 
-### 🟦 Frontend UI (`frontend`)
-Nginx-served static HTML/JS interface that talks to the backend.
+## Service endpoints (verified against `docker-compose.yml`)
 
-Exposed port:
+| Service      | URL / Endpoint                          | Host Port |
+|--------------|------------------------------------------|-----------|
+| Frontend     | `http://localhost:6180`                  | 6180      |
+| Backend      | `http://localhost:6100/api/chat`         | 6100      |
+| MCP Matrix   | `http://localhost:6101/tool/matrix`      | 6101      |
+| MCP Hanoi    | `http://localhost:6102/tool/hanoi`       | 6102      |
+| SearxNG      | `http://localhost:6103`                  | 6103      |
 
-- **Host:** `6180` → **Container:** `80`
+## Example usage
 
-You can open the UI in your browser at:
-
-- http://localhost:6180
-
----
-
-### 🟪 SearxNG (`searxng`)
-Local, privacy-preserving meta-search engine.
-
-- Internal URL for other services: `http://searxng:8080`
-- Environment: `SEARXNG_BASE_URL=http://localhost:6103/`
-
-Exposed port:
-
-- **Host:** `6103` → **Container:** `8080`
-
-You can open SearxNG directly at:
-
-- http://localhost:6103
-
----
-
-## 🧠 Tested Local Models (via Ollama)
-
-The stack works well with:
-
--   **Qwen3:1.7B**
--   **Qwen3-VL:2B**
--   **Ministral-3:3B** (fastest in tests)
-
-All models responded without errors during MCP tool calls.
-
----
-
-## 🚀 Getting Started
-
-### 1. Clone the repository
+### Chat request to backend
 
 ```bash
-git clone https://github.com/vtavakkoli/mcp-test.git
-cd mcp-test
+curl -X POST http://localhost:6100/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Invert matrix [[4,7],[2,6]]"}'
 ```
 
-### 2. Start the entire stack
+### Direct matrix tool request
 
 ```bash
-docker-compose up --build
+curl -X POST http://localhost:6101/tool/matrix \
+  -H "Content-Type: application/json" \
+  -d '{"matrix":[[4,7],[2,6]]}'
 ```
 
-### 3. Access the services
+### Direct Hanoi tool request
 
-| Service        | URL                    | Host Port |
-|---------------|------------------------|-----------|
-| Frontend UI   | http://localhost:6180  | `6180`    |
-| Backend API   | http://localhost:6100  | `6100`    |
-| MCP Matrix    | (internal: mcp-matrix) | `6101`    |
-| MCP Hanoi     | (internal: mcp-hanoi)  | `6102`    |
-| SearxNG       | http://localhost:6103  | `6103`    |
+```bash
+curl -X POST http://localhost:6102/tool/hanoi \
+  -H "Content-Type: application/json" \
+  -d '{"n":3}'
+```
 
-> ⚠️ MCP servers are primarily meant to be used from inside the Docker network (backend / LLM tool calls), but they are also mapped to host ports for debugging.
+## Troubleshooting
+
+- **Frontend loads but replies fail**
+  - Confirm backend is running on `6100` and CORS is enabled.
+- **Backend returns Ollama error**
+  - Verify Ollama is running on host port `11434` and the configured model exists.
+- **Search tool returns empty/failed results**
+  - Check SearxNG container status and outbound network availability.
+- **Matrix tool returns 400**
+  - Ensure input is square and invertible.
+- **Hanoi tool returns 400**
+  - Ensure `n >= 1`.
+
+## License
+
+Licensed under the MIT License. See [LICENSE](./LICENSE).
 
 ---
-
-## 🔧 Development Notes
-
-Matrix service uses:
-
-```python
-np.linalg.inv(matrix)
-```
-
-Hanoi service returns all moves in order.
-
-Backend is located in:
-
-```text
-/backend/src
-```
-
-Frontend files in:
-
-```text
-/frontend/html
-```
-
----
-
-## 🤝 Contributing
-
-PRs are welcome.  
-Please open issues for bugs and feature ideas.
+Written by Vahid Tavakkoli, 2026.
