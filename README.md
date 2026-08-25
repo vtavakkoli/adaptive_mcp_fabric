@@ -1,145 +1,153 @@
-# mcp-test
+# Adaptive MCP Fabric
 
-Containerized MCP demo stack by **Vahid Tavakkoli (2026)**.
+**Progressive discovery, trust-aware routing, and concurrent orchestration for large Model Context Protocol tool ecosystems.**
 
-This project demonstrates how to orchestrate a local AI workflow with a Node.js backend, a static frontend, Python tool servers, SearxNG web search, and Ollama model inference using Docker Compose.
+[![CI](https://github.com/vtavakkoli/mcp-test/actions/workflows/ci.yml/badge.svg)](https://github.com/vtavakkoli/mcp-test/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![MCP](https://img.shields.io/badge/MCP-2026--07--28-111827)](https://modelcontextprotocol.io/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-![MCP stack screenshot](./screenshot.png)
+Adaptive MCP Fabric turns the original `mcp-test` experiment into a reusable, framework-independent Python library for agents that must operate across **large, heterogeneous MCP catalogs** without dumping every tool schema into the model.
 
-## Project overview
+> **Discover broadly, expose narrowly, execute safely, and learn from runtime evidence.**
 
-`mcp-test` is a practical reference setup for experimenting with tool-enabled LLM chat in a local environment. The backend receives user prompts, calls Ollama, executes requested tools (matrix inversion, Tower of Hanoi, internet search, time, weather), and returns a final response to the browser UI.
+## Why this exists
 
-## Features
-
-- Node.js backend API (`/api/chat`) with tool-call orchestration.
-- Static frontend (Nginx) for interactive chat.
-- Python MCP-style tool services:
-  - Matrix inversion service
-  - Hanoi solver service
-- SearxNG integration for search results.
-- Ollama integration for local model inference.
-- Docker Compose orchestration for one-command startup.
-
-## Architecture overview
+A production agent may connect to tens of servers and hundreds of tools. Sending the complete catalog increases context cost and can make tool selection harder. Adaptive MCP Fabric introduces a control plane between the agent and MCP servers.
 
 ```text
-Browser UI (frontend:6180)
-  -> Backend API (backend:6100, POST /api/chat)
-     -> Ollama API (host.docker.internal:11434)
-     -> MCP Matrix service (mcp-matrix:6101, POST /tool/matrix)
-     -> MCP Hanoi service (mcp-hanoi:6102, POST /tool/hanoi)
-     -> SearxNG (searxng:8080)
+                         Agent / LLM
+                              |
+                              v
+                   +----------------------+
+                   | Adaptive MCP Fabric  |
+                   +----------------------+
+                    |     |      |      |
+              discovery routing policy planner
+                    \     |      |     /
+                     v    v      v    v
+                    Top-K MCP capabilities
+                              |
+                 +------------+------------+
+                 |            |            |
+              Search        Files        GitHub  ...
+                MCP           MCP          MCP
 ```
 
-## Repository structure
+## Core capabilities
 
-```text
-mcp-test/
-├── backend/                # Node.js API and tool execution logic
-├── frontend/               # Static HTML/JS UI served by Nginx
-├── mcp-hanoi/              # Python FastAPI Hanoi tool server
-├── mcp-matrix/             # Python FastAPI matrix tool server
-├── searxng/config/         # SearxNG runtime config
-├── docker-compose.yml      # Multi-service orchestration
-└── README.md
-```
+- **Progressive discovery** — normalize paginated `tools/list` catalogs and reveal only top-k tools.
+- **Adaptive routing** — blend relevance, reliability, latency, token overhead, and risk.
+- **Trust-aware policy** — allow/confirm/deny gates with conservative side-effect defaults.
+- **DAG execution** — validate dependencies and run independent steps concurrently.
+- **Runtime adaptation** — update reliability and latency from actual executions.
+- **MCP 2026 foundation** — stateless HTTP adapter with `MCP-Protocol-Version`, `Mcp-Method`, `Mcp-Name`, `server/discover`, `tools/list`, and `tools/call`.
 
-## Prerequisites
-
-- Docker + Docker Compose
-- Ollama running on the host machine
-- A pulled Ollama model (default in compose: `ministral-3:3b`)
-
-### Ollama dependency notes
-
-- The backend expects Ollama at `http://host.docker.internal:11434`.
-- On Linux, if `host.docker.internal` is not available by default, configure host-gateway support for Docker.
-- Make sure your selected model is pulled before chat requests.
-
-### SearxNG dependency notes
-
-- SearxNG is included as a containerized dependency in this stack.
-- Backend searches route through `SEARXNG_URL=http://searxng:8080`.
-- Public internet access from your Docker environment is required for meaningful search results.
-
-## Setup and run
-
-1. Clone:
-
-   ```bash
-   git clone https://github.com/vtavakkoli/mcp-test.git
-   cd mcp-test
-   ```
-
-2. (Optional) create local env file:
-
-   ```bash
-   cp .env.example .env
-   ```
-
-3. Start services:
-
-   ```bash
-   docker compose up --build
-   ```
-
-4. Open the frontend:
-
-   - `http://localhost:6180`
-
-## Service endpoints (verified against `docker-compose.yml`)
-
-| Service      | URL / Endpoint                          | Host Port |
-|--------------|------------------------------------------|-----------|
-| Frontend     | `http://localhost:6180`                  | 6180      |
-| Backend      | `http://localhost:6100/api/chat`         | 6100      |
-| MCP Matrix   | `http://localhost:6101/tool/matrix`      | 6101      |
-| MCP Hanoi    | `http://localhost:6102/tool/hanoi`       | 6102      |
-| SearxNG      | `http://localhost:6103`                  | 6103      |
-
-## Example usage
-
-### Chat request to backend
+## Install
 
 ```bash
-curl -X POST http://localhost:6100/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Invert matrix [[4,7],[2,6]]"}'
+git clone https://github.com/vtavakkoli/mcp-test.git
+cd mcp-test
+python -m pip install -e ".[dev]"
 ```
 
-### Direct matrix tool request
+The core library has **zero runtime Python dependencies**.
+
+## 30-second example
+
+```python
+from adaptive_mcp_fabric import AdaptiveRouter, ToolCapability, ToolRegistry
+
+registry = ToolRegistry()
+registry.register_many([
+    ToolCapability(server_id="weather", name="forecast", description="Weather forecast, rain, temperature and wind by city", tags=frozenset({"weather", "forecast"})),
+    ToolCapability(server_id="math", name="matrix_inverse", description="Invert a square numerical matrix", tags=frozenset({"math", "linear-algebra"})),
+])
+
+decision = AdaptiveRouter(registry).route("Will it rain tomorrow?", top_k=1)
+print(decision.selected[0].tool.key)
+# weather:forecast
+```
+
+Run with:
 
 ```bash
-curl -X POST http://localhost:6101/tool/matrix \
-  -H "Content-Type: application/json" \
-  -d '{"matrix":[[4,7],[2,6]]}'
+python examples/quickstart.py
 ```
 
-### Direct Hanoi tool request
+or:
 
 ```bash
-curl -X POST http://localhost:6102/tool/hanoi \
-  -H "Content-Type: application/json" \
-  -d '{"n":3}'
+docker compose run --rm fabric-demo
 ```
 
-## Troubleshooting
+## Architecture
 
-- **Frontend loads but replies fail**
-  - Confirm backend is running on `6100` and CORS is enabled.
-- **Backend returns Ollama error**
-  - Verify Ollama is running on host port `11434` and the configured model exists.
-- **Search tool returns empty/failed results**
-  - Check SearxNG container status and outbound network availability.
-- **Matrix tool returns 400**
-  - Ensure input is square and invertible.
-- **Hanoi tool returns 400**
-  - Ensure `n >= 1`.
+| Layer | Responsibility |
+|---|---|
+| `ToolRegistry` | Normalized cross-server capability catalog |
+| `ProgressiveDiscovery` | MCP `tools/list` ingestion and pagination |
+| `AdaptiveRouter` | Top-k multi-objective ranking |
+| `PolicyEngine` | Trust/risk/scoped authorization decisions |
+| `TelemetryStore` | Reliability and latency evidence |
+| `DAGPlanner` | Plan validation and concurrency layers |
+| `FabricExecutor` | Policy-gated execution |
+| `MCPHttpClient` | Stateless MCP HTTP transport |
+| `AdaptiveMCPFabric` | High-level facade |
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## MCPBench
+
+```bash
+python examples/benchmark_progressive_discovery.py
+```
+
+or:
+
+```bash
+docker compose --profile benchmark run --rm fabric-benchmark
+```
+
+See [docs/BENCHMARK.md](docs/BENCHMARK.md) for the research roadmap.
+
+## Quality gate
+
+```bash
+make check
+```
+
+CI tests Python 3.11, 3.12, and 3.13.
+
+## Legacy demo
+
+The original Node.js/Ollama/SearXNG + matrix/Hanoi demonstration is retained for reproducibility but is no longer the primary architecture.
+
+```bash
+docker compose --profile legacy up --build
+```
+
+## Roadmap
+
+- official MCP SDK adapters;
+- embedding and cross-encoder rankers;
+- persistent/vector capability registries;
+- server-card discovery;
+- Tasks extension support for durable work;
+- workload identity and delegated authorization;
+- OPA/Cedar policy backends;
+- OpenTelemetry export;
+- MCPBench datasets with adversarial/overlapping tool catalogs;
+- learned routing policies.
+
+## Status
+
+`0.1.0` is an **alpha research/library foundation**.
 
 ## License
 
-Licensed under the MIT License. See [LICENSE](./LICENSE).
+MIT License. See [LICENSE](LICENSE).
 
----
-Written by Vahid Tavakkoli, 2026.
+## Author
+
+**Dr. Vahid Tavakkoli**

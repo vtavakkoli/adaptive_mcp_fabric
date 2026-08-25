@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "adaptive-mcp-fabric"
+version = "0.1.0"
+description = "Progressive discovery, trust-aware routing, and DAG orchestration for large MCP tool ecosystems."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Vahid Tavakkoli" }]
+keywords = ["mcp", "model-context-protocol", "agents", "tool-routing", "progressive-discovery", "orchestration", "ai"]
+classifiers = ["Development Status :: 3 - Alpha", "Intended Audience :: Developers", "Intended Audience :: Science/Research", "License :: OSI Approved :: MIT License", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12", "Programming Language :: Python :: 3.13", "Topic :: Scientific/Engineering :: Artificial Intelligence"]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3", "pytest-asyncio>=0.25", "ruff>=0.11"]
+
+[project.urls]
+Homepage = "https://github.com/vtavakkoli/mcp-test"
+Repository = "https://github.com/vtavakkoli/mcp-test"
+Issues = "https://github.com/vtavakkoli/mcp-test/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/adaptive_mcp_fabric"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "B"]
+ignore = ["E501"]
