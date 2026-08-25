@@ -1,57 +1,47 @@
 services:
-  backend:
-    build: ./backend
-    container_name: mcp-backend
-    environment:
-      - OLLAMA_BASE_URL=http://host.docker.internal:11434
-      - OLLAMA_MODEL=ministral-3:3b
-      - MCP_MATRIX_URL=http://mcp-matrix:6101
-      - MCP_HANOI_URL=http://mcp-hanoi:6102
-      - SEARXNG_URL=http://searxng:8080
-    ports:
-      - "6100:6100"
-    depends_on:
-      - mcp-matrix
-      - mcp-hanoi
-      - searxng
+  fabric-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "examples/quickstart.py"]
 
-  frontend:
+  fabric-benchmark:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "examples/benchmark_progressive_discovery.py"]
+    profiles: ["benchmark"]
+
+  legacy-backend:
+    build: ./backend
+    environment:
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-ministral-3:3b}
+      - MATRIX_URL=http://mcp-matrix:8000
+      - HANOI_URL=http://mcp-hanoi:8000
+      - SEARXNG_URL=http://searxng:8080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    profiles: ["legacy"]
+
+  legacy-frontend:
     build: ./frontend
-    container_name: mcp-frontend
     ports:
-      - "6180:80"
+      - "${FRONTEND_PORT:-6180}:80"
     depends_on:
-      - backend
+      - legacy-backend
+    profiles: ["legacy"]
 
   mcp-matrix:
     build: ./mcp-matrix
-    container_name: mcp-matrix
-    ports:
-      - "6101:6101"
+    profiles: ["legacy"]
 
   mcp-hanoi:
     build: ./mcp-hanoi
-    container_name: mcp-hanoi
-    ports:
-      - "6102:6102"
+    profiles: ["legacy"]
 
   searxng:
     image: searxng/searxng:latest
-    container_name: mcp-searxng
-    ports:
-      - "6103:8080"
     volumes:
-      - ./searxng/config:/etc/searxng:rw
-    environment:
-      - SEARXNG_BASE_URL=http://localhost:6103/
-    cap_drop:
-      - ALL
-    cap_add:
-      - CHOWN
-      - SETGID
-      - SETUID
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "1"
+      - ./searxng/config:/etc/searxng
+    profiles: ["legacy"]
